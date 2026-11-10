@@ -53,6 +53,12 @@ class AuthFixture {
           ),
           '/api/auth/me' => account(),
           '/api/auth/logout' => http.Response('', 204),
+          '/api/hoc-bong/tai-tro/thong-bao' => jsonResponse({
+            'items': [],
+            'page': int.parse(request.url.queryParameters['page']!),
+            'size': int.parse(request.url.queryParameters['size']!),
+            'hasNext': false,
+          }),
           _ => jsonResponse({'code': 'UNAUTHORIZED'}, 401),
         };
       }),
