@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/application/auth_controller.dart';
 import '../features/home/presentation/home_page.dart';
+import '../features/scholarships/data/scholarship_repository.dart';
 import '../features/scholarships/presentation/scholarships_page.dart';
 import '../features/shcn/presentation/schedule_page.dart';
 
@@ -16,8 +17,13 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
+  bool _scholarshipsOpened = false;
+  late final _scholarships = ScholarshipRepository(widget.auth.service.api);
 
-  void _select(int index) => setState(() => _selectedIndex = index);
+  void _select(int index) => setState(() {
+    _selectedIndex = index;
+    if (index == 2) _scholarshipsOpened = true;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +68,14 @@ class _AppShellState extends State<AppShell> {
                     onOpenScholarships: () => _select(2),
                   ),
                   const SchedulePage(),
-                  const ScholarshipsPage(),
+                  if (_scholarshipsOpened)
+                    ScholarshipsPage(
+                      repository: _scholarships,
+                      user: widget.auth.user!,
+                      active: _selectedIndex == 2,
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
             ),

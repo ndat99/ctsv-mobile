@@ -36,9 +36,10 @@ không triển khai nghiệp vụ của các mục này.
 - Theme, bản địa hóa, cấu hình API theo môi trường và đường dẫn API backend.
 - Đăng nhập thật bằng tài khoản backend, kiểm thông tin `/me`, khôi phục phiên,
   làm mới access token và đăng xuất.
-- Các trang SHCN/HBTT vẫn là placeholder để triển khai tiếp; chưa tải lịch hoặc
-  thông báo học bổng và không dùng dữ liệu sinh viên giả.
-- Unit/widget test cho cấu hình và điều hướng.
+- HBTT-02 dùng API thật để xem danh sách có phân trang, làm mới, xem chi tiết
+  thông báo, điều kiện và thông tin biểu mẫu kèm theo.
+- Trang SHCN vẫn là placeholder để triển khai tiếp; chưa tải lịch.
+- Unit/widget test cho cấu hình, đăng nhập, điều hướng và xem thông báo học bổng.
 
 `CtsvApp` nhận `AppConfig` tại điểm khởi tạo. Auth dùng `ChangeNotifier`, HTTP
 client có thể thay bằng mock trong test và kho phiên Android qua MethodChannel.
@@ -122,6 +123,29 @@ phiên gặp lỗi mạng, có thể Thử lại hoặc chọn Đăng nhập l�
 Đăng xuất luôn xóa phiên trên thiết bị trước; nếu mất kết nối khi thu hồi trên
 server, app hiển thị rõ cảnh báo này.
 
+## Xem thông báo học bổng tài trợ (HBTT-02)
+
+Sau khi đăng nhập, chọn **Học bổng** ở thanh điều hướng hoặc thẻ trên Trang chủ.
+Tài khoản cần quyền `HB_TT_XEM` và liên kết hồ sơ sinh viên hợp lệ. Backend tiếp
+tục kiểm tra quyền và liên kết hồ sơ cho từng request.
+
+- Danh sách dùng `GET /api/hoc-bong/tai-tro/thong-bao?page=0&size=12`.
+  Nút Trước/Sau chuyển trang; nút Làm mới hoặc kéo xuống tải lại trang đầu.
+- Chạm thông báo để gọi `GET /api/hoc-bong/tai-tro/thong-bao/{id}`. Chi tiết
+  gồm nhà tài trợ, năm học, giá trị, thời gian, trạng thái, nội dung/điều kiện
+  và thông tin cần chuẩn bị theo biểu mẫu. Biểu mẫu chỉ để đọc.
+- Giờ hiển thị cố định theo Việt Nam (UTC+7). Nhãn nhận hồ sơ lấy từ
+  `dangNhanHoSo` do backend trả về; không tự quyết định dựa vào đồng hồ thiết bị.
+- Có trạng thái đang tải, rỗng, lỗi mạng/thử lại, không đủ quyền và thông báo
+  không còn công khai. Không dùng dữ liệu mẫu thay cho lỗi hoặc danh sách rỗng.
+- Màn hình chi tiết nằm trong phiên hiện tại; hết phiên hoặc đăng xuất sẽ đóng
+  cả danh sách/chi tiết. Không lưu thông báo xuống thiết bị.
+
+Phần này chỉ xem thông báo, chưa triển khai đăng ký/nộp hồ sơ (HBTT-01).
+Để xem dữ liệu trên máy, backend phải chạy và có thông báo đã phát hành; thông
+báo nháp không xuất hiện trong API dành cho sinh viên. Test tự động dùng HTTP
+giả lập, chưa thay thế kiểm tra với SQL Server và tài khoản sinh viên thực tế.
+
 ## Cấu trúc
 
 ```text
@@ -134,7 +158,7 @@ lib/
     auth/              # Dữ liệu auth, điều phối phiên và trang đăng nhập
     home/presentation/
     shcn/presentation/
-    scholarships/presentation/
+    scholarships/      # DTO, API đọc danh sách/chi tiết và giao diện HBTT-02
   shared/widgets/
 android/               # Host Android, compile/target API 35
 config/                # Cấu hình mẫu, không có thông tin đăng nhập
