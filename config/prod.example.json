@@ -1,3 +1,4 @@
 {
-  "API_BASE_URL": "https://api.example.edu.vn"
+  "API_BASE_URL": "https://api.example.edu.vn",
+  "AUTH_ORIGIN": "https://ctsv.example.edu.vn"
 }

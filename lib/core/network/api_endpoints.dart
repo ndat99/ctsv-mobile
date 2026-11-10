@@ -1,4 +1,4 @@
-/// Contracts already provided by ../ctsv. No network requests are made yet.
+/// Contracts provided by ../ctsv.
 abstract final class ApiEndpoints {
   static const login = '/api/auth/login';
   static const refresh = '/api/auth/refresh';
