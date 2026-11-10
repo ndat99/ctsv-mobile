@@ -34,13 +34,14 @@ không triển khai nghiệp vụ của các mục này.
 
 - App shell với thanh điều hướng Trang chủ, Lịch SHCN và Học bổng.
 - Theme, bản địa hóa, cấu hình API theo môi trường và đường dẫn API backend.
-- Các trang SHCN/HBTT là placeholder để triển khai tiếp; chưa gọi API, chưa có
-  đăng nhập hoặc dữ liệu sinh viên giả.
+- Đăng nhập thật bằng tài khoản backend, kiểm thông tin `/me`, khôi phục phiên,
+  làm mới access token và đăng xuất.
+- Các trang SHCN/HBTT vẫn là placeholder để triển khai tiếp; chưa tải lịch hoặc
+  thông báo học bổng và không dùng dữ liệu sinh viên giả.
 - Unit/widget test cho cấu hình và điều hướng.
 
-`CtsvApp` nhận `AppConfig` tại điểm khởi tạo để sau này truyền cấu hình vào API
-client/repository. Chưa thêm thư viện quản lý state, HTTP hoặc code generation
-khi chưa có luồng cần dùng chúng.
+`CtsvApp` nhận `AppConfig` tại điểm khởi tạo. Auth dùng `ChangeNotifier`, HTTP
+client có thể thay bằng mock trong test và kho phiên Android qua MethodChannel.
 
 ## Chạy trên Windows
 
@@ -81,6 +82,11 @@ Nếu đã dùng FVM, chạy `fvm install` rồi `fvm flutter pub get` và `fvm 
 - Có thể dùng `adb reverse tcp:8080 tcp:8080` qua USB rồi cấu hình `http://127.0.0.1:8080`.
 - Bản release dùng HTTPS; chỉ manifest **debug** cho phép HTTP để phát triển local.
 
+`AUTH_ORIGIN` là giá trị header `Origin` mà backend cho phép qua
+`AUTH_ALLOWED_ORIGINS`. Mặc định `http://localhost:5173` khớp cấu hình backend
+hiện tại; đây không phải địa chỉ emulator. Khi triển khai thật, thay bằng một
+origin đã được backend cho phép. App gửi `X-CSRF-Protection: 1` cho auth write.
+
 Tạo cấu hình riêng từ bản mẫu và không commit địa chỉ/mật khẩu nội bộ:
 
 ```powershell
@@ -92,10 +98,29 @@ Copy-Item config/dev.example.json config/dev.local.json
 `config/*.local.json` đã được ignore. Dart define được nhúng vào ứng dụng nên
 chỉ dùng cho cấu hình công khai; không để mật khẩu, JWT secret hoặc khóa ký ở đó.
 
-Endpoint đã định vị tại `lib/core/network/api_endpoints.dart`: auth, lịch SHCN,
-thông báo HBTT. Khi nối đăng nhập cần xử lý Bearer access token, cookie refresh,
-xoay phiên và yêu cầu Origin/CSRF của backend hiện tại; skeleton chưa triển khai
-transport hay lưu token. Không dùng dữ liệu demo của web thay kết quả API.
+## Sử dụng đăng nhập
+
+1. Chạy backend `../ctsv` với cấu hình SQL Server và JWT hiện có. HTTP local cần
+   profile `dev` hoặc `AUTH_COOKIE_SECURE=false`; production dùng HTTPS và cookie Secure.
+2. Chọn `API_BASE_URL` phù hợp emulator/điện thoại; giữ `AUTH_ORIGIN` khớp allowlist backend.
+3. Chạy app, nhập tài khoản backend đang hoạt động. Có thể dùng tài khoản sinh viên
+   đã được quản trị tạo; các tài khoản dev chỉ tồn tại nếu máy đã bật seed tương ứng.
+4. Thành công sẽ mở Trang chủ với username từ server. Nút Đăng xuất ở góc phải.
+
+Không có tài khoản/mật khẩu mặc định nhúng trong app và không triển khai đăng ký,
+quên mật khẩu hoặc Office 365 trong phần này.
+
+Access token chỉ ở RAM. Cookie refresh được lưu thành payload mã hóa AES-256-GCM
+trong thư mục `noBackupFilesDir`; khóa không xuất ra ngoài Android Keystore.
+Không lưu mật khẩu, access token hoặc quyền người dùng vào file. Mỗi lần mở app
+lấy lại tài khoản từ `/me`, không tin thông tin người dùng lưu cũ.
+
+Auth sử dụng `/api/auth/login`, `/refresh`, `/me`, `/logout`. Nhiều request 401
+đồng thời dùng chung một lần refresh và mỗi request chỉ thử lại một lần. Lỗi mạng,
+timeout, sai thông tin hoặc lỗi nghiệp vụ không tự gửi lại đăng nhập. Khi khôi phục
+phiên gặp lỗi mạng, có thể Thử lại hoặc chọn Đăng nhập lại để xóa phiên local.
+Đăng xuất luôn xóa phiên trên thiết bị trước; nếu mất kết nối khi thu hồi trên
+server, app hiển thị rõ cảnh báo này.
 
 ## Cấu trúc
 
@@ -106,6 +131,7 @@ lib/
   core/config/         # Cấu hình public từ dart-define
   core/network/        # Hợp đồng đường dẫn API
   features/
+    auth/              # Dữ liệu auth, điều phối phiên và trang đăng nhập
     home/presentation/
     shcn/presentation/
     scholarships/presentation/
@@ -118,6 +144,9 @@ tool/                  # Bootstrap và wrapper Windows
 
 Khi bắt đầu một nghiệp vụ, thêm `data/` cho DTO/API/repository và phần state vào
 nghiệp vụ tương ứng khi cần. Logic dùng chung mới đưa vào `core` hoặc `shared`.
+
+`android/.../SecureSessionStore.kt` chỉ phục vụ lưu phiên Android. Mở rộng sang
+iOS sau này cần bổ sung Keychain và phần host iOS tương ứng.
 
 ## Kiểm tra và build
 

@@ -1,17 +1,28 @@
 /// Public build configuration. Never put credentials or signing keys here.
 class AppConfig {
-  AppConfig({required Uri apiBaseUri})
-    : apiBaseUri = _validateBaseUri(apiBaseUri);
+  AppConfig({required Uri apiBaseUri, Uri? authOrigin})
+    : apiBaseUri = _validateBaseUri(apiBaseUri),
+      authOrigin = _validateBaseUri(
+        authOrigin ?? Uri.parse('http://localhost:5173'),
+      );
 
   factory AppConfig.fromEnvironment() {
     const baseUrl = String.fromEnvironment(
       'API_BASE_URL',
       defaultValue: 'http://10.0.2.2:8080',
     );
-    return AppConfig(apiBaseUri: Uri.parse(baseUrl));
+    const origin = String.fromEnvironment(
+      'AUTH_ORIGIN',
+      defaultValue: 'http://localhost:5173',
+    );
+    return AppConfig(
+      apiBaseUri: Uri.parse(baseUrl),
+      authOrigin: Uri.parse(origin),
+    );
   }
 
   final Uri apiBaseUri;
+  final Uri authOrigin;
 
   Uri endpoint(String path) {
     if (!path.startsWith('/api/')) {
