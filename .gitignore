@@ -1,0 +1,28 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+*.iml
+.idea/
+
+# Local SDKs and caches
+.tools/
+.fvm/
+android/local.properties
+android/.gradle/
+android/.kotlin/
+android/captures/
+
+# Local configuration and signing
+config/*.local.json
+android/key.properties
+*.jks
+*.keystore
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+*.log
