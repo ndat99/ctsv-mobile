@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/json_response.dart';
 import 'scholarship_announcement.dart';
 
 class ScholarshipPage {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/feature_message.dart';
 import '../data/scholarship_announcement.dart';
 import '../data/scholarship_repository.dart';
 import 'scholarship_format.dart';
@@ -94,7 +95,7 @@ class _ScholarshipDetailPageState extends State<ScholarshipDetailPage> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (_error != null)
-                  ScholarshipMessage(message: _error!, onRetry: _load)
+                  FeatureMessage(message: _error!, onRetry: _load)
                 else if (_item != null)
                   _Details(item: _item!),
               ],

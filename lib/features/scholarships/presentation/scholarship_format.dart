@@ -1,11 +1,7 @@
+import '../../../core/format/date_format.dart';
 import '../data/scholarship_announcement.dart';
 
-String scholarshipDateTime(DateTime value) {
-  final vietnam = value.toUtc().add(const Duration(hours: 7));
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${two(vietnam.day)}/${two(vietnam.month)}/${vietnam.year} '
-      '${two(vietnam.hour)}:${two(vietnam.minute)}';
-}
+String scholarshipDateTime(DateTime value) => vietnamDateTime(value);
 
 String scholarshipMoney(num? value) {
   if (value == null) return 'Chưa công bố';

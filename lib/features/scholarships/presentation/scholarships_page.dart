@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/feature_message.dart';
 import '../../auth/data/auth_user.dart';
 import '../data/scholarship_announcement.dart';
 import '../data/scholarship_repository.dart';
@@ -120,7 +121,7 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                 ),
                 Expanded(
                   child: accessMessage != null
-                      ? ScholarshipMessage(
+                      ? FeatureMessage(
                           message: accessMessage,
                           icon: Icons.lock_outline,
                         )
@@ -144,13 +145,13 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                                   ),
                                 )
                               else if (_error != null)
-                                ScholarshipMessage(
+                                FeatureMessage(
                                   message: _error!,
                                   onRetry: () => _load(_requestedPage),
                                 )
                               else if (_data != null) ...[
                                 if (_data!.items.isEmpty)
-                                  const ScholarshipMessage(
+                                  const FeatureMessage(
                                     icon: Icons.campaign_outlined,
                                     message:
                                         'Chưa có thông báo học bổng '

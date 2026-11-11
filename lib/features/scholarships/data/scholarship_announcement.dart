@@ -1,3 +1,5 @@
+import '../../../core/network/json_response.dart';
+
 class ScholarshipAnnouncement {
   const ScholarshipAnnouncement({
     required this.id,
@@ -37,8 +39,8 @@ class ScholarshipAnnouncement {
       schoolYear: requiredText(json['namHoc']),
       conditions: json['dieuKien'],
       amount: amount as num?,
-      opensAt: _instant(json['moNhanLuc']),
-      deadline: _instant(json['hanNopLuc']),
+      opensAt: jsonInstant(json['moNhanLuc']),
+      deadline: jsonInstant(json['hanNopLuc']),
       state: requiredText(json['trangThai']),
       acceptingApplications: requiredBoolean(json['dangNhanHoSo']),
       form: json['form'] == null
@@ -117,38 +119,4 @@ class ScholarshipField {
   final bool required;
   final List<String> options;
   final Map<String, dynamic> rules;
-}
-
-Map<String, dynamic> jsonObject(Object? value) {
-  if (value is! Map<String, dynamic>) {
-    throw const FormatException('Expected a JSON object');
-  }
-  return value;
-}
-
-int positiveInteger(Object? value) {
-  if (value is! int || value <= 0) {
-    throw const FormatException('Expected a positive integer');
-  }
-  return value;
-}
-
-String requiredText(Object? value) {
-  if (value is! String || value.trim().isEmpty) {
-    throw const FormatException('Expected text');
-  }
-  return value;
-}
-
-bool requiredBoolean(Object? value) {
-  if (value is! bool) throw const FormatException('Expected a boolean');
-  return value;
-}
-
-DateTime _instant(Object? value) {
-  final text = requiredText(value);
-  if (!RegExp(r'(Z|[+-]\d{2}:\d{2})$').hasMatch(text)) {
-    throw const FormatException('Expected an instant with a time zone');
-  }
-  return DateTime.parse(text).toUtc();
 }

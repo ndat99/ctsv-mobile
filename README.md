@@ -38,8 +38,9 @@ không triển khai nghiệp vụ của các mục này.
   làm mới access token và đăng xuất.
 - HBTT-02 dùng API thật để xem danh sách có phân trang, làm mới, xem chi tiết
   thông báo, điều kiện và thông tin biểu mẫu kèm theo.
-- Trang SHCN vẫn là placeholder để triển khai tiếp; chưa tải lịch.
-- Unit/widget test cho cấu hình, đăng nhập, điều hướng và xem thông báo học bổng.
+- SHCN-01 dùng API thật để xem danh sách và chi tiết lịch của lớp, phân trang,
+  làm mới, xem trạng thái lịch/phòng, link họp và yêu cầu đổi lịch kèm theo.
+- Unit/widget test cho cấu hình, đăng nhập, điều hướng, xem lịch SHCN và học bổng.
 
 `CtsvApp` nhận `AppConfig` tại điểm khởi tạo. Auth dùng `ChangeNotifier`, HTTP
 client có thể thay bằng mock trong test và kho phiên Android qua MethodChannel.
@@ -146,6 +147,34 @@ Phần này chỉ xem thông báo, chưa triển khai đăng ký/nộp hồ sơ 
 báo nháp không xuất hiện trong API dành cho sinh viên. Test tự động dùng HTTP
 giả lập, chưa thay thế kiểm tra với SQL Server và tài khoản sinh viên thực tế.
 
+## Xem lịch SHCN (SHCN-01)
+
+Sau khi đăng nhập, chọn **Lịch SHCN** trên thanh điều hướng hoặc thẻ ở Trang chủ.
+Tài khoản sinh viên cần quyền `SHCN_LICH_XEM` và liên kết hồ sơ sinh viên.
+Backend xác định lớp từ hồ sơ trong token; app không gửi mã lớp hoặc mã sinh viên
+để tự chọn phạm vi dữ liệu.
+
+- Danh sách gọi `GET /api/shcn/lich-hop?page=0&size=20`, dùng `total` để phân
+  trang. Nút Trước/Sau chuyển trang; Làm mới hoặc kéo xuống quay về trang đầu.
+- Chọn **Xem chi tiết** để tải `GET /api/shcn/lich-hop/{id}`: đợt, lớp, học kỳ,
+  lần họp, ngày/tiết, hình thức, phòng/link, mã GVCN và trạng thái chốt/phòng.
+- Nhãn **Lịch đã công bố** dựa trên `loaiLich=LICH_CONG_BO`. Nguyện vọng được
+  ghi rõ chưa công bố; phòng dự kiến không hiển thị như phòng chính thức.
+  Giữ các trạng thái chưa xếp, đang xếp, đang giữ, xếp thất bại và hủy phòng.
+- Ngày họp giữ nguyên ngày lịch của backend, không đổi theo múi giờ thiết bị.
+  Các mốc xác nhận/gửi/xử lý/hạn chốt hiển thị theo giờ Việt Nam (UTC+7).
+- Lịch trực tuyến đã công bố có nút **Sao chép link họp** trong chi tiết.
+  Chỉ sao chép link HTTP(S) hợp lệ, không có thông tin đăng nhập trong URL;
+  lịch hủy hoặc chưa công bố không có nút này.
+- Yêu cầu đổi lịch chỉ để đọc: ngày/tiết đề nghị, lý do, trạng thái và kết quả
+  xử lý. Đề nghị đang chờ không thay thế ngày/tiết lịch hiện tại.
+- Có trạng thái tải, rỗng, lỗi/thử lại và lịch không còn thuộc phạm vi được xem.
+  Hết phiên hoặc đăng xuất đóng cả danh sách/chi tiết; không lưu lịch trên máy.
+
+Phần sinh viên không có thao tác chốt, gửi yêu cầu đổi lịch, điểm danh hoặc lập
+biên bản. Backend phải chạy với dữ liệu lớp/đợt phù hợp để xem lịch thực tế.
+Unit/widget test dùng HTTP giả lập, chưa thay thế kiểm tra với tài khoản thật.
+
 ## Cấu trúc
 
 ```text
@@ -157,7 +186,7 @@ lib/
   features/
     auth/              # Dữ liệu auth, điều phối phiên và trang đăng nhập
     home/presentation/
-    shcn/presentation/
+    shcn/              # DTO, API đọc danh sách/chi tiết và giao diện SHCN-01
     scholarships/      # DTO, API đọc danh sách/chi tiết và giao diện HBTT-02
   shared/widgets/
 android/               # Host Android, compile/target API 35

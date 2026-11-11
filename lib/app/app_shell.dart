@@ -4,6 +4,7 @@ import '../features/auth/application/auth_controller.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/scholarships/data/scholarship_repository.dart';
 import '../features/scholarships/presentation/scholarships_page.dart';
+import '../features/shcn/data/schedule_repository.dart';
 import '../features/shcn/presentation/schedule_page.dart';
 
 class AppShell extends StatefulWidget {
@@ -18,11 +19,14 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   bool _scholarshipsOpened = false;
+  bool _schedulesOpened = false;
   late final _scholarships = ScholarshipRepository(widget.auth.service.api);
+  late final _schedules = ScheduleRepository(widget.auth.service.api);
 
   void _select(int index) => setState(() {
     _selectedIndex = index;
     if (index == 2) _scholarshipsOpened = true;
+    if (index == 1) _schedulesOpened = true;
   });
 
   @override
@@ -67,7 +71,14 @@ class _AppShellState extends State<AppShell> {
                     onOpenSchedules: () => _select(1),
                     onOpenScholarships: () => _select(2),
                   ),
-                  const SchedulePage(),
+                  if (_schedulesOpened)
+                    SchedulePage(
+                      repository: _schedules,
+                      user: widget.auth.user!,
+                      active: _selectedIndex == 1,
+                    )
+                  else
+                    const SizedBox.shrink(),
                   if (_scholarshipsOpened)
                     ScholarshipsPage(
                       repository: _scholarships,
