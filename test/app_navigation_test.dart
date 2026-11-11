@@ -26,6 +26,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('home-page')), findsOneWidget);
 
+    await tester.tap(find.byKey(const Key('nav-training-score')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('training-score-page')), findsOneWidget);
+    expect(find.text('Chức năng chưa được triển khai.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('nav-tuition-reduction')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('tuition-reduction-page')), findsOneWidget);
+    expect(find.text('Chức năng chưa được triển khai.'), findsOneWidget);
+
     await tester.tap(find.byKey(const Key('nav-schedules')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('schedule-page')), findsOneWidget);

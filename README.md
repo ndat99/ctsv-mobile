@@ -29,15 +29,18 @@ Chỉ dự kiến triển khai hai chức năng trên mobile:
 - **SHCN-01 — Xem lịch SHCN.**
 - **HBTT-02 — Xem thông báo học bổng tài trợ.**
 
-DRL, miễn giảm học phí, KKHT, du học và ký số chỉ có nút giữ chỗ bị vô hiệu hóa;
+Điểm rèn luyện và miễn giảm học phí chỉ mở màn hình thông báo chưa triển khai.
+KKHT, du học và ký số chỉ có nút giữ chỗ bị vô hiệu hóa;
 không triển khai nghiệp vụ của các mục này.
 
-- App shell với thanh điều hướng Trang chủ, Lịch SHCN và Học bổng.
+- Thanh điều hướng gồm SHCN, Điểm rèn luyện, Trang chủ, MGHP và Học bổng;
+  nút Trang chủ nằm giữa, nhô lên theo cung tròn.
 - Theme, bản địa hóa, cấu hình API theo môi trường và đường dẫn API backend.
 - Đăng nhập thật bằng tài khoản backend, kiểm thông tin `/me`, khôi phục phiên,
   làm mới access token và đăng xuất.
 - HBTT-02 dùng API thật để xem danh sách có phân trang, làm mới, xem chi tiết
-  thông báo, điều kiện và thông tin biểu mẫu kèm theo.
+  thông báo, điều kiện và thông tin biểu mẫu kèm theo; tìm kiếm theo tên học bổng
+  hoặc nhà tài trợ.
 - SHCN-01 dùng API thật để xem danh sách và chi tiết lịch của lớp, phân trang,
   làm mới, xem trạng thái lịch/phòng, link họp và yêu cầu đổi lịch kèm theo.
 - Unit/widget test cho cấu hình, đăng nhập, điều hướng, xem lịch SHCN và học bổng.
@@ -132,6 +135,12 @@ tục kiểm tra quyền và liên kết hồ sơ cho từng request.
 
 - Danh sách dùng `GET /api/hoc-bong/tai-tro/thong-bao?page=0&size=12`.
   Nút Trước/Sau chuyển trang; nút Làm mới hoặc kéo xuống tải lại trang đầu.
+- Nhập tên học bổng hoặc nhà tài trợ, bấm **Tìm kiếm** hoặc phím tìm kiếm trên
+  bàn phím để gửi `q` đến API, tìm trên toàn bộ danh sách trước khi phân trang.
+  Từ khóa tối đa 200 ký tự, bỏ khoảng trắng hai đầu. Tìm mới hoặc xóa tìm kiếm
+  quay về trang đầu. Nút Trước/Sau xóa từ khóa và tải trang tương ứng của toàn bộ
+  danh sách; làm mới và quay lại từ chi tiết giữ từ khóa đang áp dụng.
+  Nút **Xóa tìm kiếm** trong ô nhập trả về toàn bộ danh sách công khai.
 - Chạm thông báo để gọi `GET /api/hoc-bong/tai-tro/thong-bao/{id}`. Chi tiết
   gồm nhà tài trợ, năm học, giá trị, thời gian, trạng thái, nội dung/điều kiện
   và thông tin cần chuẩn bị theo biểu mẫu. Biểu mẫu chỉ để đọc.
@@ -143,6 +152,11 @@ tục kiểm tra quyền và liên kết hồ sơ cho từng request.
   cả danh sách/chi tiết. Không lưu thông báo xuống thiết bị.
 
 Phần này chỉ xem thông báo, chưa triển khai đăng ký/nộp hồ sơ (HBTT-01).
+Theo yêu cầu chuẩn bị kiểm thử, việc xóa từ khóa khi chuyển trang được giữ làm
+kịch bản đã biết: case kỳ vọng giữ bộ lọc khi phân trang sẽ FAILED. Test widget
+`search resets pagination and survives detail, refresh and clear on a small screen`
+vẫn kiểm kỳ vọng giữ từ khóa, nên sẽ thất bại với hành vi hiện tại.
+
 Để xem dữ liệu trên máy, backend phải chạy và có thông báo đã phát hành; thông
 báo nháp không xuất hiện trong API dành cho sinh viên. Test tự động dùng HTTP
 giả lập, chưa thay thế kiểm tra với SQL Server và tài khoản sinh viên thực tế.

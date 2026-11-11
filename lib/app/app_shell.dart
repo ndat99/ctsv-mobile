@@ -6,6 +6,8 @@ import '../features/scholarships/data/scholarship_repository.dart';
 import '../features/scholarships/presentation/scholarships_page.dart';
 import '../features/shcn/data/schedule_repository.dart';
 import '../features/shcn/presentation/schedule_page.dart';
+import '../shared/widgets/feature_placeholder.dart';
+import 'widgets/app_bottom_navigation.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.auth});
@@ -17,16 +19,16 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
+  AppTab _selectedTab = AppTab.home;
   bool _scholarshipsOpened = false;
   bool _schedulesOpened = false;
   late final _scholarships = ScholarshipRepository(widget.auth.service.api);
   late final _schedules = ScheduleRepository(widget.auth.service.api);
 
-  void _select(int index) => setState(() {
-    _selectedIndex = index;
-    if (index == 2) _scholarshipsOpened = true;
-    if (index == 1) _schedulesOpened = true;
+  void _select(AppTab tab) => setState(() {
+    _selectedTab = tab;
+    if (tab == AppTab.scholarships) _scholarshipsOpened = true;
+    if (tab == AppTab.schedules) _schedulesOpened = true;
   });
 
   @override
@@ -65,17 +67,17 @@ class _AppShellState extends State<AppShell> {
               ),
             Expanded(
               child: IndexedStack(
-                index: _selectedIndex,
+                index: _selectedTab.index,
                 children: [
                   HomePage(
-                    onOpenSchedules: () => _select(1),
-                    onOpenScholarships: () => _select(2),
+                    onOpenSchedules: () => _select(AppTab.schedules),
+                    onOpenScholarships: () => _select(AppTab.scholarships),
                   ),
                   if (_schedulesOpened)
                     SchedulePage(
                       repository: _schedules,
                       user: widget.auth.user!,
-                      active: _selectedIndex == 1,
+                      active: _selectedTab == AppTab.schedules,
                     )
                   else
                     const SizedBox.shrink(),
@@ -83,39 +85,29 @@ class _AppShellState extends State<AppShell> {
                     ScholarshipsPage(
                       repository: _scholarships,
                       user: widget.auth.user!,
-                      active: _selectedIndex == 2,
+                      active: _selectedTab == AppTab.scholarships,
                     )
                   else
                     const SizedBox.shrink(),
+                  const FeaturePlaceholder(
+                    key: Key('training-score-page'),
+                    title: 'Điểm rèn luyện',
+                    icon: Icons.fact_check_outlined,
+                  ),
+                  const FeaturePlaceholder(
+                    key: Key('tuition-reduction-page'),
+                    title: 'Miễn giảm học phí',
+                    icon: Icons.school_outlined,
+                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _select,
-        destinations: const [
-          NavigationDestination(
-            key: Key('nav-home'),
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          NavigationDestination(
-            key: Key('nav-schedules'),
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Lịch SHCN',
-          ),
-          NavigationDestination(
-            key: Key('nav-scholarships'),
-            icon: Icon(Icons.workspace_premium_outlined),
-            selectedIcon: Icon(Icons.workspace_premium),
-            label: 'Học bổng',
-          ),
-        ],
+      bottomNavigationBar: AppBottomNavigation(
+        selectedTab: _selectedTab,
+        onSelect: _select,
       ),
     );
   }

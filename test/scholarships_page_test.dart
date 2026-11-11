@@ -100,6 +100,219 @@ void main() {
     ]);
   });
 
+  testWidgets(
+    'search resets pagination and survives detail, refresh and clear on a small screen',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      final fixture = scholarshipFixture(
+        read: (request) async {
+          if (request.url.path != scholarshipPath) {
+            return jsonResponse(
+              announcementJson(
+                id: int.parse(request.url.pathSegments.last),
+                title: 'Chi tiết đã chọn',
+              ),
+            );
+          }
+          final page = int.parse(request.url.queryParameters['page']!);
+          final query = request.url.queryParameters['q'] ?? 'Tất cả';
+          return jsonResponse(
+            scholarshipPageJson(
+              page: page,
+              hasNext: page == 0,
+              items: [
+                announcementJson(id: 11 + page, title: '$query trang $page'),
+              ],
+            ),
+          );
+        },
+      );
+      await openPage(tester, fixture);
+      await tester.pumpAndSettle();
+      Future<void> nextPage() async {
+        final next = find.byKey(const Key('scholarships-next'));
+        await tester.scrollUntilVisible(
+          next,
+          200,
+          scrollable: find
+              .descendant(
+                of: find.byType(ListView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+
+      await nextPage();
+
+      final search = find.byKey(const Key('scholarships-search'));
+      await tester.enterText(search, '  Quỹ A & B  ');
+      await tester.pump();
+      expect(fixture.requests, hasLength(2));
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      tester.view.resetViewInsets();
+      await tester.pumpAndSettle();
+      expect(find.text('Quỹ A & B trang 0'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, 'Quỹ A & B');
+      expect(fixture.requests.last.url.queryParameters['page'], '0');
+
+      await nextPage();
+      await tester.ensureVisible(find.byKey(const Key('scholarship-12')));
+      await tester.tap(find.byKey(const Key('scholarship-12')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('scholarship-back')));
+      await tester.pumpAndSettle();
+      expect(find.text('Quỹ A & B trang 1'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, 'Quỹ A & B');
+      await tester.tap(find.byKey(const Key('scholarships-refresh')));
+      await tester.pumpAndSettle();
+      expect(find.text('Quỹ A & B trang 0'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('scholarships-search-clear')));
+      await tester.pumpAndSettle();
+      expect(find.text('Tất cả trang 0'), findsOneWidget);
+      expect(tester.widget<TextField>(search).controller!.text, isEmpty);
+      final requests = fixture.requests.where(
+        (r) => r.url.path == scholarshipPath,
+      );
+      expect(requests.map((r) => r.url.queryParameters['page']), [
+        '0',
+        '1',
+        '0',
+        '1',
+        '0',
+        '0',
+      ]);
+      expect(requests.map((r) => r.url.queryParameters['q']), [
+        null,
+        null,
+        'Quỹ A & B',
+        'Quỹ A & B',
+        'Quỹ A & B',
+        null,
+      ]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'late results from an older search do not replace the latest results',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final fixture = scholarshipFixture(
+        read: (request) async {
+          final query = request.url.queryParameters['q'];
+          if (query == 'Cũ') return pending.future;
+          return jsonResponse(
+            scholarshipPageJson(
+              items: [announcementJson(title: query ?? 'Tất cả')],
+            ),
+          );
+        },
+      );
+      await openPage(tester, fixture);
+      await tester.pumpAndSettle();
+      final search = find.byKey(const Key('scholarships-search'));
+      final submit = find.byKey(const Key('scholarships-search-submit'));
+      await tester.enterText(search, 'Cũ');
+      await tester.tap(submit);
+      await tester.pump();
+      await tester.enterText(search, 'Mới');
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.text('Mới'), findsNWidgets(2));
+      pending.complete(
+        jsonResponse(
+          scholarshipPageJson(items: [announcementJson(title: 'Kết quả cũ')]),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Kết quả cũ'), findsNothing);
+      expect(find.text('Mới'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'search distinguishes no matches from errors and retries the same keyword',
+    (tester) async {
+      var failed = false;
+      final fixture = scholarshipFixture(
+        read: (request) async {
+          final query = request.url.queryParameters['q'];
+          if (query == 'Thử lại' && !failed) {
+            failed = true;
+            throw http.ClientException('offline');
+          }
+          return jsonResponse(
+            scholarshipPageJson(
+              items: query == 'Không có' ? [] : [announcementJson()],
+            ),
+          );
+        },
+      );
+      await openPage(tester, fixture);
+      await tester.pumpAndSettle();
+      final search = find.byKey(const Key('scholarships-search'));
+      final submit = find.byKey(const Key('scholarships-search-submit'));
+      await tester.enterText(search, 'Không có');
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Không tìm thấy học bổng phù hợp'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Chưa có thông báo học bổng'), findsNothing);
+      await tester.enterText(search, 'Thử lại');
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Không kết nối được máy chủ'), findsOneWidget);
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Thử lại'));
+      await tester.pumpAndSettle();
+      expect(find.text('Học bổng Tiếp sức đến trường'), findsOneWidget);
+      expect(fixture.requests.map((r) => r.url.queryParameters['q']), [
+        null,
+        'Không có',
+        'Thử lại',
+        'Thử lại',
+      ]);
+    },
+  );
+
+  testWidgets('search works inside the student shell with a phone keyboard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    final fixture = scholarshipFixture(
+      read: (_) async => jsonResponse(scholarshipPageJson(items: [])),
+    );
+    await openApp(tester, fixture);
+    await tester.enterText(
+      find.byKey(const Key('scholarships-search')),
+      'Fujikin',
+    );
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+    expect(fixture.requests.last.url.queryParameters['q'], 'Fujikin');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('network retry stays on the failed next page', (tester) async {
     var failed = false;
     final fixture = scholarshipFixture(

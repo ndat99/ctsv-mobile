@@ -25,7 +25,7 @@ class FeaturePlaceholder extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Chức năng đang được phát triển.',
+          'Chức năng chưa được triển khai.',
           textAlign: TextAlign.center,
         ),
       ],

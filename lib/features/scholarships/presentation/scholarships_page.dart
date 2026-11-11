@@ -33,6 +33,8 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
   int _request = 0;
   int _requestedPage = 0;
   int? _selectedId;
+  String _keyword = '';
+  final _searchController = TextEditingController();
   final _scroll = ScrollController();
 
   String? get _accessMessage {
@@ -54,19 +56,22 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _load(int page) async {
+  Future<void> _load(int page, {String? query}) async {
     final request = ++_request;
+    final keyword = query ?? _keyword;
     setState(() {
+      _keyword = keyword;
       _requestedPage = page;
       _loading = true;
       _error = null;
     });
     try {
-      final result = await widget.repository.list(page: page);
+      final result = await widget.repository.list(page: page, query: keyword);
       if (!mounted || request != _request) return;
       setState(() => _data = result);
       if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -76,6 +81,28 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
     } finally {
       if (mounted && request == _request) setState(() => _loading = false);
     }
+  }
+
+  void _search() {
+    final keyword = _searchController.text.trim();
+    _searchController.value = TextEditingValue(
+      text: keyword,
+      selection: TextSelection.collapsed(offset: keyword.length),
+    );
+    FocusScope.of(context).unfocus();
+    unawaited(_load(0, query: keyword));
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    unawaited(_load(0, query: ''));
+  }
+
+  void _changePage(int page) {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    unawaited(_load(page, query: ''));
   }
 
   void _back() => setState(() => _selectedId = null);
@@ -119,6 +146,49 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                     ],
                   ),
                 ),
+                if (accessMessage == null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          key: const Key('scholarships-search'),
+                          controller: _searchController,
+                          maxLength: 200,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) => _search(),
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Tìm kiếm học bổng',
+                            hintText: 'Tên học bổng hoặc nhà tài trợ',
+                            counterText: '',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon:
+                                _searchController.text.isNotEmpty ||
+                                    _keyword.isNotEmpty
+                                ? IconButton(
+                                    key: const Key('scholarships-search-clear'),
+                                    tooltip: 'Xóa tìm kiếm',
+                                    onPressed: _clearSearch,
+                                    icon: const Icon(Icons.clear),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            key: const Key('scholarships-search-submit'),
+                            onPressed: _search,
+                            icon: const Icon(Icons.search),
+                            label: const Text('Tìm kiếm'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Expanded(
                   child: accessMessage != null
                       ? FeatureMessage(
@@ -151,11 +221,15 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                                 )
                               else if (_data != null) ...[
                                 if (_data!.items.isEmpty)
-                                  const FeatureMessage(
-                                    icon: Icons.campaign_outlined,
-                                    message:
-                                        'Chưa có thông báo học bổng '
-                                        'được công khai ở trang này.',
+                                  FeatureMessage(
+                                    icon: _keyword.isEmpty
+                                        ? Icons.campaign_outlined
+                                        : Icons.search_off,
+                                    message: _keyword.isEmpty
+                                        ? 'Chưa có thông báo học bổng '
+                                              'được công khai ở trang này.'
+                                        : 'Không tìm thấy học bổng phù hợp '
+                                              'với tên học bổng hoặc nhà tài trợ.',
                                   ),
                                 for (final item in _data!.items)
                                   _AnnouncementCard(
@@ -169,7 +243,7 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                                     OutlinedButton(
                                       key: const Key('scholarships-previous'),
                                       onPressed: _data!.page > 0
-                                          ? () => _load(_data!.page - 1)
+                                          ? () => _changePage(_data!.page - 1)
                                           : null,
                                       child: const Text('Trước'),
                                     ),
@@ -182,7 +256,7 @@ class _ScholarshipsPageState extends State<ScholarshipsPage> {
                                     OutlinedButton(
                                       key: const Key('scholarships-next'),
                                       onPressed: _data!.hasNext
-                                          ? () => _load(_data!.page + 1)
+                                          ? () => _changePage(_data!.page + 1)
                                           : null,
                                       child: const Text('Sau'),
                                     ),

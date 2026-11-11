@@ -32,6 +32,52 @@ void main() {
     },
   );
 
+  test(
+    'search encodes names and sponsors without changing pagination',
+    () async {
+      const keyword = 'Quỹ A & B + Học bổng 100%_![đ] #';
+      final fixture = scholarshipFixture(
+        read: (request) async {
+          expect(request.url.path, scholarshipPath);
+          expect(request.url.queryParameters, {
+            'page': '2',
+            'size': '12',
+            'q': keyword,
+          });
+          expect(request.url.fragment, isEmpty);
+          return jsonResponse(scholarshipPageJson(page: 2));
+        },
+      );
+      addTearDown(fixture.close);
+      final result = await ScholarshipRepository(fixture.api)
+          .list(page: 2, query: '  $keyword  ');
+      expect(result.page, 2);
+      expect(fixture.requests, hasLength(1));
+    },
+  );
+
+  test(
+    'blank search is omitted and oversized search does not send a request',
+    () async {
+      final fixture = scholarshipFixture(
+        read: (request) async {
+          expect(request.url.queryParameters.containsKey('q'), isFalse);
+          return jsonResponse(scholarshipPageJson());
+        },
+      );
+      addTearDown(fixture.close);
+      final repository = ScholarshipRepository(fixture.api);
+      await repository.list(query: '  \t  ');
+      await expectLater(
+        repository.list(query: 'a' * 201),
+        throwsA(
+          isA<ApiException>().having((e) => e.code, 'code', 'VALIDATION_ERROR'),
+        ),
+      );
+      expect(fixture.requests, hasLength(1));
+    },
+  );
+
   test('empty response stays empty without synthetic announcements', () async {
     final fixture = scholarshipFixture(
       read: (_) async => jsonResponse(scholarshipPageJson(items: [])),

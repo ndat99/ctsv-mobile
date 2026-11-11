@@ -24,12 +24,24 @@ class ScholarshipRepository {
   final ApiClient api;
   static const pageSize = 12;
 
-  Future<ScholarshipPage> list({int page = 0}) async {
+  Future<ScholarshipPage> list({int page = 0, String query = ''}) async {
     if (page < 0) throw ArgumentError.value(page, 'page');
-    final response = await api.request(
-      'GET',
-      '${ApiEndpoints.scholarships}?page=$page&size=$pageSize',
-    );
+    final keyword = query.trim();
+    if (keyword.length > 200) {
+      throw const ApiException(
+        'VALIDATION_ERROR',
+        'Từ khóa tìm kiếm tối đa 200 ký tự.',
+      );
+    }
+    final path = Uri(
+      path: ApiEndpoints.scholarships,
+      queryParameters: {
+        'page': '$page',
+        'size': '$pageSize',
+        if (keyword.isNotEmpty) 'q': keyword,
+      },
+    ).toString();
+    final response = await api.request('GET', path);
     try {
       final json = jsonObject(jsonDecode(utf8.decode(response.bodyBytes)));
       final items = json['items'];
